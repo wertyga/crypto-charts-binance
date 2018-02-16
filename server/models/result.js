@@ -4,7 +4,7 @@ import { infelicity } from '../routes/api';
 const resultSchema = mongoose.Schema({
     pair: String,
     buyDate: Date,
-    result: Number
+    result: String
 });
 
 export default mongoose.model('result', resultSchema);

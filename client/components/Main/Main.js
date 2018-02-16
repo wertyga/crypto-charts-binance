@@ -42,10 +42,21 @@ export default class Main extends React.Component {
     };
 
     componentDidMount() {
-        // this.setState({ loadingPairs: true });
-        // this.props.fetchPairsData()
-        //     .then(() => this.setState({ loadingPairs: false }))
-        //     .catch(() => this.setState({ loadingPairs: false }))
+        if(this.state.pairs.length < 1) {
+            if(this.props.pairs.length > 1) {
+                this.setState({ pairs: this.props.pairs })
+            } else {
+                this.setState({ loadingPairs: true });
+                this.props.fetchPairsData()
+                    .then(() => this.setState({ loadingPairs: false }))
+                    .catch(err => {
+                        this.setState({
+                            loadingPairs: false,
+                            error: err
+                        });
+                    })
+            }
+        };
     };
 
     componentDidUpdate(prevProps, prevState) {
@@ -56,30 +67,31 @@ export default class Main extends React.Component {
         };
 
         if(this.props.pairs !== prevProps.pairs) {
-            const pairs = this.props.pairs.map(item => {
-                let symbol = item.symbol;
-                if(!isNaN(+symbol)) return null;
-                if(symbol.length > 6) {
-                    return {
-                        title: symbol,
-                        name: `${symbol.slice(0, symbol.length - 3)} / ${symbol.slice(symbol.length - 4, -1)}`
-                    }
-                } else {
-                    return {
-                        title: symbol,
-                        name: `${symbol.slice(0, 3)} / ${symbol.slice(3)}`
-                    }
-                };
-            }).filter(item => !!item).sort((a, b) => {
-                if(a.title < b.title) {
-                    return -1
-                } else if(a.title > b.title) {
-                    return 1
-                } else {
-                    return 0
-                }
-            });
-            this.setState({ pairs });
+            // console.log(this.props.pairs)
+            // const pairs = this.props.pairs.map(item => {
+            //     let symbol = item.symbol;
+            //     if(!isNaN(+symbol)) return null;
+            //     if(symbol.length > 6) {
+            //         return {
+            //             title: symbol,
+            //             name: `${symbol.slice(0, symbol.length - 3)} / ${symbol.slice(symbol.length - 4, -1)}`
+            //         }
+            //     } else {
+            //         return {
+            //             title: symbol,
+            //             name: `${symbol.slice(0, 3)} / ${symbol.slice(3)}`
+            //         }
+            //     };
+            // }).filter(item => !!item).sort((a, b) => {
+            //     if(a.title < b.title) {
+            //         return -1
+            //     } else if(a.title > b.title) {
+            //         return 1
+            //     } else {
+            //         return 0
+            //     }
+            // });
+            this.setState({ pairs: this.props.pairs.filter(item => isNaN(+item)).map(item => { return { title: item, name: item } }) });
         };
 
         if(this.props.dataPair !== prevProps.dataPair) {
@@ -92,8 +104,8 @@ export default class Main extends React.Component {
         };
 
         if(this.props.botData !== prevProps.botData) {
-            google.charts.load('current', {packages: ['corechart', 'line']});
-            google.charts.setOnLoadCallback(this.drawBotData);
+            // google.charts.load('current', {packages: ['corechart', 'line']});
+            // google.charts.setOnLoadCallback(this.drawBotData);
         };
     };
 
@@ -140,6 +152,7 @@ export default class Main extends React.Component {
         const data = google.visualization.arrayToDataTable(dataColumns);
 
         let options = {
+            title: this.state.chosenPair.title,
             colors: ['#a52714', '#0f9d58'],
             width: 800,
             height : 200

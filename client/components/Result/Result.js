@@ -32,9 +32,18 @@ export default class Result extends React.Component {
     render() {
 
         const error = <div className="error">{this.state.error}</div>
+        const result = <div className="result">
+            {Object.keys(this.props.result).map(item =>
+                <div key={item}><strong>{item}: </strong><span>{this.props.result[item] > 0 ?
+                    `+ ${this.props.result[item]} %` :
+                    `${this.props.result[item]} %`
+                }
+                </span></div>
+            )}
+        </div>
 
         return(
-            <div className="result">{this.state.error ? error : `Result: ${this.props.result}`}</div>
+            <div className="result">{this.state.error ? error : result}</div>
         );
     }
 };

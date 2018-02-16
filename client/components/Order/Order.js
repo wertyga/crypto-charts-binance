@@ -1,9 +1,10 @@
 import axios from 'axios';
 import { connect } from 'react-redux';
+import io from 'socket.io-client';
 
 import { closeOrder } from '../../actions/pairsAPI';
 
-import { exponentialMovingAverage, signalMACD, macdCalculate } from '../../../server/common/ema';
+import { exponentialMovingAverage, signalMACD, macdCalculate, simpleMA } from '../../../server/common/ema';
 
 import './Order.sass';
 
@@ -23,8 +24,24 @@ export default class Order extends React.Component {
             error: '',
             buyDate: this.props.createdAt,
             buyed: false,
+            profit: '',
             closePrice: this.props.closePrice
         };
+    };
+
+    componentDidMount() {
+        this.socket = io(`/`);
+        this.socket.on(`kline-${this.state.pair}`, msg => {
+            this.setState({
+                currentPrice: +JSON.parse(msg).k.c
+            });
+        });
+        if(this.state.closePrice) {
+            this.setState({
+                profit: this.calculateClosePercent()
+            });
+        }
+        axios.get(`/api/fetch-socket-data/${this.state.pair}/${this.state.interval}`)
     };
 
     componentDidUpdate(prevProps, prevState) {
@@ -34,7 +51,53 @@ export default class Order extends React.Component {
 
             google.charts.load('current', {packages: ['corechart', 'line']});
             google.charts.setOnLoadCallback(this.drawMacdChart);
+            google.charts.setOnLoadCallback(this.drawSeveElevenChart);
         };
+    };
+
+    drawAllCharts = () => {
+        if(this.state.data.length > 0) {
+            google.charts.load('current', {'packages':['corechart']});
+            google.charts.setOnLoadCallback(this.drawChart);
+
+            google.charts.load('current', {packages: ['corechart', 'line']});
+            google.charts.setOnLoadCallback(this.drawMacdChart);
+            google.charts.setOnLoadCallback(this.drawSeveElevenChart);
+        };
+    };
+
+    drawSeveElevenChart = () => {
+        const dataEma = this.state.data.map(item => {
+            return {
+                time: item['Open time'],
+                price: item['Close']
+            };
+        });
+
+        simpleMA(dataEma, 7);
+        simpleMA(dataEma, 25);
+
+        let dataColumns = [['Time', 'Ma-7', 'Ma-25']];
+        dataEma.filter(item => item['ma-7'] && item['ma-25']).forEach(item => {
+            let elem = [item['time'], item['ma-7'] || 0, item['ma-25'] || 0];
+            dataColumns.push(elem);
+        });
+        const data = google.visualization.arrayToDataTable(dataColumns);
+
+        let options = {
+            colors: ['#ffda00', '#0a1dff'],
+            width: '100%',
+            height: 200
+        };
+
+        const formatter = new google.visualization.NumberFormat({
+            fractionDigits: 8
+        });
+
+        let chart = new google.visualization.LineChart(this.sevenEleven);
+        formatter.format(data, 1);
+        formatter.format(data, 2);
+        chart.draw(data, options);
     };
 
     drawMacdChart = () => {
@@ -59,7 +122,7 @@ export default class Order extends React.Component {
 
         let options = {
             colors: ['#a52714', '#0f9d58'],
-            width: 800,
+            width: '100%',
             height : 200
         };
 
@@ -96,7 +159,7 @@ export default class Order extends React.Component {
             tooltip: {
                 ignoreBounds: true
             },
-            width: 800,
+            width: '100%',
             height : 200
         };
 
@@ -134,7 +197,7 @@ export default class Order extends React.Component {
 
     buyPair = () => {
         this.setState({ loading: true });
-        axios.get(`/api/buy-pair/${this.state.pair}/${this.state.interval}/${this.props._id}`)
+        axios.get(`/api/buy-pair/${this.state.pair}/${this.state.interval}/${this.props._id}/${this.state.currentPrice}`)
             .then(res => {
                 this.setState({
                     buyPrice: res.data.buyPrice,
@@ -159,7 +222,12 @@ export default class Order extends React.Component {
             buyDate: this.state.buyDate
         })
             .then(res => {
-                this.setState({ loading: false, closePrice: res.data.closePrice, currentPrice: res.data.closePrice })
+                const profit = this.calculateClosePercent();
+                this.setState({ loading: false,
+                    closePrice: res.data.closePrice,
+                    currentPrice: res.data.closePrice,
+                    profit
+                })
             })
             .catch(err => {
                 this.setState({
@@ -167,6 +235,13 @@ export default class Order extends React.Component {
                     error: err.response ? err.response.data.error : err.message
                 })
             })
+    };
+
+    calculateClosePercent = () => {
+        if(!this.state.buyPrice) return '';
+        let closePercent = ((this.state.currentPrice - this.state.buyPrice) / (this.state.buyPrice / 100)).toFixed(2) + '%';
+        if(parseFloat(closePercent) > 0) closePercent = '+' + closePercent;
+        return closePercent;
     };
 
     render() {
@@ -182,10 +257,17 @@ export default class Order extends React.Component {
                         <button className='btn btn-primary'
                                 disabled={this.props.loading || this.state.loading} onClick={this.deleteOrder}>Delete order</button>
                         <button className='btn btn-success'
-                                disabled={this.props.loading || this.state.loading} onClick={this.showOrder}>Get order data</button>
+                                disabled={this.props.loading || this.state.loading}
+                                onClick={this.showOrder}
+                                //onClick={this.drawAllCharts}
+                        >
+                            Get order data
+                        </button>
                         <button className="btn btn-success"
+                                style={{  width: '30%' }}
                                 disabled={this.state.loading || !!this.state.buyPrice} 
-                                onClick={this.buyPair}>{!this.state.buyPrice ?
+                                onClick={this.buyPair}>
+                            {!this.state.buyPrice ?
                             `Buy - ${this.state.pair} - ${this.state.currentPrice}` :
                             `Was bought on ${this.state.buyPrice}`
                         }
@@ -193,12 +275,16 @@ export default class Order extends React.Component {
                         <button className="btn btn-danger" 
                                 disabled={this.state.loading || !!this.state.closePrice || !this.state.buyPrice}
                                 onClick={this.closeOrder}>
-                            {!!this.state.closePrice ? `Closed on - ${this.state.closePrice}`: 'Close order'}
+                            {!!this.state.closePrice ?
+                                `Closed on ${this.state.closePrice}: ${this.state.profit}`:
+                                `Close order ${this.calculateClosePercent()}`}
                         </button>
                         {this.state.error && <div className="error">{this.state.error}</div>}
                     </div>
                 <div className="chart" ref={node => this.chart = node}></div>
+                <div className="chart" ref={node => this.sevenEleven = node}></div>
                 <div className="chart" ref={node => this.macdChart = node}></div>
+
             </div>
         );
     };

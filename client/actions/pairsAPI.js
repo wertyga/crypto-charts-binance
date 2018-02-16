@@ -67,7 +67,7 @@ export function closeOrder(opt) {
 export function fetchPairsData() {
     return dispatch => {
         return axios.get('/api/get-pairs')
-            .then(res => dispatch(fetchPairs(res.data.pairs)))
+            .then(res => dispatch(fetchPairs(res.data.symbols)))
             .catch(err => {
                 err = err.response ? err.response.data.error : err.message;
                 // dispatch(globalError(err));

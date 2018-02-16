@@ -63,15 +63,16 @@ export default class Orders extends React.Component {
         return (
             <div className="Orders">
                 {this.state.error && <div className="error">{this.state.error}</div>}
-                {this.state.orders.length > 0 ? this.state.orders.map((item, i) =>
+                {!this.state.loading ? (this.state.orders.length > 0 ? this.state.orders.map((item, i) =>
                     <Order
                         {...item}
-                        key={item._id}
+                        key={i}
                         loading={this.state.loading}
                         deleteOrder={this.deleteOrder}
                     />
                 ) :
-                    <div>No orders</div>
+                    <div>No orders</div>) :
+                    <div className="loading">Loading...</div>
                 }
             </div>
         );

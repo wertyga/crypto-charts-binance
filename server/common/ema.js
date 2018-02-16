@@ -62,3 +62,20 @@ export function signalMACD(dataObjArray) {
     return dataObjArray;
     // return dataObjArray.slice(macdArr.length).concat(macdArr);
 };
+
+export function simpleMA(dataObjArray, timePeriod) {
+    const newDataArr = dataObjArray.slice(0, timePeriod);
+    let avg = 0;
+    newDataArr.forEach(item => {
+        avg += +item.price.toFixed(6);
+    });
+    dataObjArray[timePeriod - 1][`ma-${timePeriod}`] = +(avg / timePeriod).toFixed(6);
+    for(let i = timePeriod; i < dataObjArray.length; i++) {
+        let avg = 0;
+        const calcArr = dataObjArray.slice(i - (timePeriod - 1), i + 1);
+        calcArr.forEach(item => {
+            avg += +item.price.toFixed(6);
+        });
+        dataObjArray[i][`ma-${timePeriod}`] = +(avg / timePeriod).toFixed(6);
+    };
+};
