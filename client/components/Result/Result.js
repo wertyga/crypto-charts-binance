@@ -1,5 +1,7 @@
 import { connect } from 'react-redux';
 
+import io from 'socket.io-client';
+
 import { getResult } from '../../actions/pairsAPI';
 
 import './Result.sass';
@@ -16,11 +18,25 @@ export default class Result extends React.Component {
         super(props);
 
         this.state = {
+            result: this.props.result,
             error: ''
+        };
+    };
+
+    componentDidUpdate(prevProps, prevState) {
+        if(this.props.result !== prevProps.result) {
+            this.setState({
+                result: this.props.result
+            });
         };
     };
     
     componentDidMount() {
+        this.socket = io('/');
+        this.socket.on('set-result', result => {
+            this.setState({ result });
+        });
+
         this.props.getResult()
             .catch(err => {
                 this.setState({
@@ -33,17 +49,19 @@ export default class Result extends React.Component {
 
         const error = <div className="error">{this.state.error}</div>
         const result = <div className="result">
-            {Object.keys(this.props.result).map(item =>
-                <div key={item}><strong>{item}: </strong><span>{this.props.result[item] > 0 ?
-                    `+ ${this.props.result[item]} %` :
-                    `${this.props.result[item]} %`
+            {Object.keys(this.state.result).map(item =>
+                <div key={item}><strong>{item}: </strong><span>{this.state.result[item] > 0 ?
+                    `+ ${this.state.result[item]} %` :
+                    `${this.state.result[item]} %`
                 }
                 </span></div>
             )}
         </div>
 
+        const newResult = <div className="result">Result: {this.state.result > 0 ? `+${this.state.result}` : this.state.result}</div>
+
         return(
-            <div className="result">{this.state.error ? error : result}</div>
+            <div className="result">{this.state.error ? error : newResult}</div>
         );
     }
 };

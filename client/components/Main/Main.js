@@ -2,6 +2,8 @@ import { connect } from 'react-redux';
 import { findDOMNode } from 'react-dom';
 import { Link } from 'react-router-dom';
 
+import axios from 'axios';
+
 import { getCandleData, fetchPairsData, launcnBot } from '../../actions/pairsAPI';
 
 import dataClient from '../common/data';
@@ -289,6 +291,20 @@ export default class Main extends React.Component {
             })
     };
 
+    startBot = () => {
+        this.setState({ loading: true });
+        axios.get(`/api/start-bot/${this.state.chosenTimeFrame}`)
+            .then(() => {
+                this.setState({ loading: false })
+            })
+            .catch(err => {
+                this.setState({
+                    error: err.response ? err.response.data.error : err.message,
+                    loading: false
+                });
+            });
+    };
+
     render() {
         return (
             <div className='Main'>
@@ -302,6 +318,7 @@ export default class Main extends React.Component {
                 </button>
 
                 <button className='btn btn-primary' onClick={this.launchBot}>Launch bot</button>
+                <button className='btn btn-danger' onClick={this.startBot}>START BOT</button>
                 <Link className='btn btn-primary' to='/show-orders'>Show active orders</Link>
 
                 {this.state.loading && <div className="loading">Loading...</div>}

@@ -128,6 +128,8 @@ route.get('/fetch-socket-data/:pair/:interval', (req, res) => {
     const {pair, interval} = req.params;
     const ws = getSocketDataKline(pair, interval);
     ws.on('message', msg => {
+        const currentPrice = +JSON.parse(msg).k.c;
+        compareProfit(pair, currentPrice)
         io.emit(`kline-${pair}`, msg)
     });
     res.end();
@@ -253,7 +255,7 @@ route.get('/buy-pair/:pair/:time/:id/:currentPrice', (req, res) => {
 });
 
 route.get('/get-result', (req, res) => {
-    getResult().then(result => {
+    newResult().then(result => {
         res.json({ result })
     })
         .catch(err => res.status(500).json({ error: err }))
@@ -282,10 +284,10 @@ route.get('/close-order/:id/:pair/:time/:buyDate', (req, res) => {
                         new Result({
                             pair,
                             buyDate,
-                            result: diff > 0 ? `+${diff.toFixed(2)}%` : `${diff.toFixed(2)}%`
+                            result: diff
                         }).save()
                             .then(() => {
-                                getResult().then(result => {
+                                newResult().then(result => {
                                     res.json({
                                         closePrice: trade.closePrice,
                                         result
@@ -303,12 +305,44 @@ route.get('/close-order/:id/:pair/:time/:buyDate', (req, res) => {
         })
 });
 
+route.get('/start-bot/:interval', (req, res) => {
+    const { interval } = req.params;
+    let hour = new Date().getHours();
+    // startBot(interval)
+    const timer = setInterval(() => {
+        console.log(new Date())
+        const nowHour = new Date().getHours();
+        const min = new Date().getMinutes();
+        if(nowHour > hour) {
+            hour = nowHour;
+            startBot(interval);
+        };
+    }, 1000 * 300);
+    res.redirect('/show-orders');
+});
+
 
 export default route;
 
 function getSocketDataKline(pair, interval) {
     const ws = new binanceIO();
     return  ws.getKlineData(pair, interval);
+};
+
+function newResult() {
+    return Result.find({})
+        .then(results => {
+            if(results.length > 0) {
+                let sum = 0;
+                for(let i = 0; i < results.length; i++) {
+                    sum += results[i].result;
+                };
+                return +(sum / results.length).toFixed(2);
+            } else {
+                return 0
+            }
+
+        })
 };
 
 function getResult() {
@@ -322,23 +356,26 @@ function getResult() {
            for(let i = 0; i < results.length; i++) {
                if(results[i].pair.indexOf('BTC') !== -1) {
                    if(result['BTC'] === 0) {
-                       result['BTC'] = parseFloat(results[i].result);
+                       result['BTC'] = +results[i].result;
                    } else {
-                       result['BTC'] += parseFloat(results[i].result);
+                       result['BTC'] += +results[i].result;
                    };
                } else if(results[i].pair.indexOf('ETH') !== -1) {
                    if(result['ETH'] === 0) {
-                       result['ETH'] = parseFloat(results[i].result);
+                       result['ETH'] = +results[i].result;
                    } else {
-                       result['ETH'] += parseFloat(results[i].result);
+                       result['ETH'] += +results[i].result;
                    };
                } else if(results[i].pair.indexOf('BNB') !== -1) {
                    if(result['BNB'] === 0) {
-                       result['BNB'] = parseFloat(results[i].result);
+                       result['BNB'] = +results[i].result;
                    } else {
-                       result['BNB'] += parseFloat(results[i].result);
+                       result['BNB'] += +results[i].result;
                    };
                };
+           };
+           for(let key in result) {
+               result[key] = +result[key].toFixed(2)
            };
            return result;
        })
@@ -354,13 +391,12 @@ function analyzeData(interval='1h') {
         .then(resp => {
             return Trade.find({})
                 .then(trades => {
-                    const tradesArr = trades.map(item => item.pair);
+                    const tradesArr = trades.filter(item => !item.closePrice).map(item => item.pair);
                     const pairs = resp.data.symbols
                         .map(item => item.symbol)
                         .filter(item => {
                             return tradesArr.indexOf(item) === -1
                         });
-                    console.log(pairs)
                     return Promise.all(pairs.map(pair => {
                         let params = {
                             symbol: pair,
@@ -411,6 +447,8 @@ function analyzeData(interval='1h') {
                 .then(data => {
                     let result = [];
                     data.forEach(item => {
+                        let fmacd = item.data[item.data.length - 4].macd;
+                        let fsignal = item.data[item.data.length - 4].signal;
                         let pmacd = item.data[item.data.length - 3].macd;
                         let psignal = item.data[item.data.length - 3].signal;
                         let lmacd = item.data[item.data.length - 2].macd;
@@ -418,13 +456,15 @@ function analyzeData(interval='1h') {
                         let nowmacd = item.data[item.data.length - 1].macd;
                         let nowsignal = item.data[item.data.length - 1].signal;
 
-                        // const sevenAndTwentyFiveEmaDiff =
-                        //     (item.data[item.data.length - 3]['ma-7'] - item.data[item.data.length - 3]['ma-25'])
-                        // < 0 &&
-                        //     (item.data[item.data.length - 2]['ma-7'] - item.data[item.data.length - 2]['ma-25'])
-                        // >= 0 &&
-                        //     (item.data[item.data.length - 1]['ma-7'] - item.data[item.data.length - 1]['ma-25'])
-                        // > 0;
+                        const sevenAndTwentyFiveEmaDiff =
+                            (item.data[item.data.length - 3]['ma-7'] - item.data[item.data.length - 3]['ma-25'])
+                        < 0 &&
+                            (item.data[item.data.length - 2]['ma-7'] - item.data[item.data.length - 2]['ma-25'])
+                        >= 0 &&
+                            (item.data[item.data.length - 1]['ma-7'] - item.data[item.data.length - 1]['ma-25'])
+                        > 0;
+
+
 
                         // if(lsignal < 0 && lmacd < 0) {
                         //     const pdiff = pmacd - psignal;
@@ -447,7 +487,9 @@ function analyzeData(interval='1h') {
                         const nowdiff = nowmacd - nowsignal;
                         const ldiff = lmacd - lsignal;
                         const pdiff = pmacd - psignal;
-                        if(pdiff < 0 && ldiff >= 0 && nowdiff > 0 && threeUppers) result.push(item);
+                        const fdiff = fmacd - fsignal;
+                        if(((pmacd < lmacd) && (lmacd < nowmacd)) &&
+                            pdiff < 0 && ldiff >= 0 && nowdiff > 0 && threeUppers) result.push(item);
                     });
 
                     if(result.length > 0) {
@@ -455,6 +497,7 @@ function analyzeData(interval='1h') {
                             return new Trade({
                                 pair: item.pair,
                                 // buyPrice: item.data[item.data.length - 1].price,
+                                // createdAt: Date.now() + infelicity,
                                 currentPrice: item.data[item.data.length - 1].price,
                                 interval
                             }).save();
@@ -468,4 +511,74 @@ function analyzeData(interval='1h') {
                 })
         })
         .catch(err => { throw err })
+};
+
+
+function startBot(interval, res) {
+    let pair;
+    analyzeData(interval)
+        .then(result => {
+            result.result.forEach(item => {
+
+                const ws = getSocketDataKline(item.pair, interval);
+                ws.on('message', msg => {
+                    const message = JSON.parse(msg);
+                    const currentPrice = message.k.c;
+                    const msgPair = message.s;
+                    compareProfit(msgPair, currentPrice, ws);
+                    io.emit(`kline-${item.pair}`, msg)
+                });
+                ws.on('error', err => console.log('ws: ', err))
+            });
+            // res.end();
+        })
+        .catch(err => {
+            // io.emit(`error-on-${item.pair}`, err.responsse ? err.response.data.error.msg : err.message)
+            console.log(err)
+        })
+};
+
+function calculatePercentProfit(currentPrice, buyPrice) {
+    return +((+currentPrice - +buyPrice) / (+buyPrice / 100)).toFixed(2);
+};
+function compareProfit(pair, currentPrice, ws) {
+    Trade.findOne({ pair })
+        .then(trade => {
+            const nowHour = new Date().getHours();
+            // console.log(nowHour, trade.createdAt.getHours())
+            // if(trade && trade.createdAt.getHours() > nowHour + 2) {
+            //     trade.closePrice = currentPrice;
+            //     trade.save();
+            // };
+            if(trade && trade.buyPrice && !trade.closePrice &&
+                (calculatePercentProfit(+currentPrice, trade.buyPrice) > 10 ||
+                calculatePercentProfit(+currentPrice, trade.buyPrice) < -2)) {
+
+                Promise.all([(() => {
+                    const diff = (currentPrice - trade.buyPrice) / (trade.buyPrice / 100) - 0.2;
+                    new Result({
+                        pair,
+                        buyDate: trade.createdAt,
+                        result: diff
+                    }).save()
+                })(),
+                    (() => {
+                        trade.closePrice = +currentPrice;
+                        trade.save()
+                    })()
+                ])
+                    .then(() => {
+                        newResult()
+                            .then(result => {
+                                ws.close()
+                                io.emit(`close-kline-${trade.pair}`, currentPrice);
+                                io.emit('set-result', result);
+                            })
+
+                    })
+                    .catch(err => {
+                        io.emit(`error-on-${trade.pair}`, err.response ? err.response.data.error.msg : err.message)
+                    })
+            };
+        })
 };

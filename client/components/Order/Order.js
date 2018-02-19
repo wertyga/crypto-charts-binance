@@ -36,9 +36,23 @@ export default class Order extends React.Component {
                 currentPrice: +JSON.parse(msg).k.c
             });
         });
-        if(this.state.closePrice) {
+        this.socket.on(`close-kline-${this.state.pair}`, currentPrice => {
+            if(this.state.closePrice) return;
+            const profit = this.calculateClosePercent();
             this.setState({
-                profit: this.calculateClosePercent()
+                closePrice: currentPrice,
+                profit
+            })
+
+        });
+        this.socket.on(`error-on-${this.state.pair}`, err => {
+            this.setState({ error: err })
+        });
+        if(this.state.closePrice) {
+            let closePercent = ((this.state.closePrice - this.state.buyPrice) / (this.state.buyPrice / 100)).toFixed(2) + '%';
+            if(parseFloat(closePercent) > 0) closePercent = '+' + closePercent;
+            this.setState({
+                profit: closePercent
             });
         }
         axios.get(`/api/fetch-socket-data/${this.state.pair}/${this.state.interval}`)
@@ -137,6 +151,7 @@ export default class Order extends React.Component {
     };
 
     drawChart = () => {
+        // let arr = ['Open time', 'Low price', 'Open price', 'Close price', 'High price']
         const arr = this.state.data.map(item => {
             return [
                 item['Open time'].split('T')[1].split(':').slice(0,2).join(':'),
@@ -144,10 +159,11 @@ export default class Order extends React.Component {
                 { v: item['Open'], f: item['Open'].toFixed(8) },
                 { v: item['Close'], f: item['Close'].toFixed(8) },
                 { v: item['High'], f: item['High'].toFixed(8) },
-                // `Open ${item['Open']} - Close ${item['Close']} : Low ${item['Low']} - High ${item['High']}`
+                `Time: ${item['Open time'].split('T')[1].split(':').slice(0,2).join(':')} : Open ${item['Open']} - Close ${item['Close']} : Low ${item['Low']} - High ${item['High']}`
             ]
         });
         let data = google.visualization.arrayToDataTable(arr, true);
+        data.setColumnProperty(5, 'role', 'tooltip')
         let options = {
             title: this.props.pair,
             legend: 'none',
@@ -157,7 +173,7 @@ export default class Order extends React.Component {
                 risingColor: { strokeWidth: 1, fill: '#0f9d58', stroke: '#0f9d58' }   // green
             },
             tooltip: {
-                ignoreBounds: true
+                isHtml: true
             },
             width: '100%',
             height : 200
@@ -165,10 +181,10 @@ export default class Order extends React.Component {
 
         let chart = new google.visualization.CandlestickChart(this.chart);
 
-        google.visualization.events.addListener(chart, 'select', e => {
-            const {row, column} = chart.getSelection()[0];
-            console.log(data.getValue(row, column))
-        })
+        // google.visualization.events.addListener(chart, 'select', e => {
+        //     const {row, column} = chart.getSelection()[0];
+        //     console.log(data.getValue(row, column))
+        // })
 
         chart.draw(data, options);
     };
