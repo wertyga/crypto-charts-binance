@@ -58,7 +58,9 @@ export default class Result extends React.Component {
             )}
         </div>
 
-        const newResult = <div className="result">Result: {this.state.result > 0 ? `+${this.state.result}` : this.state.result}</div>
+        const newResult = <div className="result">
+            Result: {this.state.result > 0 ? `+${this.state.result}` : this.state.result} %
+        </div>
 
         return(
             <div className="result">{this.state.error ? error : newResult}</div>

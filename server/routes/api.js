@@ -484,12 +484,15 @@ function analyzeData(interval='1h') {
                                             &&
                                             (item.data[item.data.length - 2]['ma-7'] < item.data[item.data.length - 1]['ma-7']);
 
+                        const threeDown = (item.data[item.data.length - 3]['ma-7'] > item.data[item.data.length - 2]['ma-7'])
+                                            &&
+                                          (item.data[item.data.length - 2]['ma-7'] > item.data[item.data.length - 1]['ma-7']);
+
                         const nowdiff = nowmacd - nowsignal;
                         const ldiff = lmacd - lsignal;
                         const pdiff = pmacd - psignal;
                         const fdiff = fmacd - fsignal;
-                        if(((pmacd < lmacd) && (lmacd < nowmacd)) &&
-                            pdiff < 0 && ldiff >= 0 && nowdiff > 0 && threeUppers) result.push(item);
+                        if(ldiff >= 0 && nowdiff > 0 && threeUppers) result.push(item);
                     });
 
                     if(result.length > 0) {
@@ -551,8 +554,8 @@ function compareProfit(pair, currentPrice, ws) {
             //     trade.save();
             // };
             if(trade && trade.buyPrice && !trade.closePrice &&
-                (calculatePercentProfit(+currentPrice, trade.buyPrice) > 10 ||
-                calculatePercentProfit(+currentPrice, trade.buyPrice) < -2)) {
+                (calculatePercentProfit(+currentPrice, trade.buyPrice) > 2.5 )) {
+                // calculatePercentProfit(+currentPrice, trade.buyPrice) < -2)) {
 
                 Promise.all([(() => {
                     const diff = (currentPrice - trade.buyPrice) / (trade.buyPrice / 100) - 0.2;

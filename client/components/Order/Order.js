@@ -176,7 +176,7 @@ export default class Order extends React.Component {
                 isHtml: true
             },
             width: '100%',
-            height : 200
+            height : 500
         };
 
         let chart = new google.visualization.CandlestickChart(this.chart);

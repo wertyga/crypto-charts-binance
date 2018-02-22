@@ -40,6 +40,23 @@ export default class Orders extends React.Component {
             })
     };
 
+    componentDidUpdate(prevProps, prevState) {
+        if(this.state.orders !== prevState.orders) {
+            console.log('sort')
+            this.setState({
+                orders: this.state.orders.sort((a, b) => {
+                    if(a.pair > b.pair) {
+                        return 1;
+                    } else if(a.pair < b.pair) {
+                        return -1;
+                    } else {
+                        return 0;
+                    }
+                })
+            });
+        };
+    };
+
     deleteOrder = (_id) => {
         this.setState({ loading: true });
         this.props.deleteOrder(_id)
@@ -66,7 +83,7 @@ export default class Orders extends React.Component {
                 {!this.state.loading ? (this.state.orders.length > 0 ? this.state.orders.map((item, i) =>
                     <Order
                         {...item}
-                        key={i}
+                        key={item._id}
                         loading={this.state.loading}
                         deleteOrder={this.deleteOrder}
                     />
