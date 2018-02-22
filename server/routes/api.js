@@ -125,12 +125,17 @@ route.get('/get-pairs', (req, res) => {
 });
 
 route.get('/fetch-socket-data/:pair/:interval', (req, res) => {
+    const depthLevels = 20;
     const {pair, interval} = req.params;
     const ws = getSocketDataKline(pair, interval);
+    const depthWs = getDepthData(pair, depthLevels);
     ws.on('message', msg => {
         const currentPrice = +JSON.parse(msg).k.c;
         compareProfit(pair, currentPrice)
         io.emit(`kline-${pair}`, msg)
+    });
+    depthWs.on('message', msg => {
+        io.emit(`depth-${pair}`, JSON.parse(msg));
     });
     res.end();
 });
@@ -329,6 +334,11 @@ function getSocketDataKline(pair, interval) {
     return  ws.getKlineData(pair, interval);
 };
 
+function getDepthData(pair, levels = 20) {
+    const ws = new binanceIO();
+    return ws.getDepthData(pair, levels);
+};
+
 function newResult() {
     return Result.find({})
         .then(results => {
@@ -488,11 +498,16 @@ function analyzeData(interval='1h') {
                                             &&
                                           (item.data[item.data.length - 2]['ma-7'] > item.data[item.data.length - 1]['ma-7']);
 
+                        const threeUppersMACD = (fmacd < lmacd) && (pmacd < lmacd) && (lmacd < nowmacd);
+
                         const nowdiff = nowmacd - nowsignal;
                         const ldiff = lmacd - lsignal;
                         const pdiff = pmacd - psignal;
                         const fdiff = fmacd - fsignal;
-                        if(ldiff >= 0 && nowdiff > 0 && threeUppers) result.push(item);
+
+                        const signalCross = fdiff < 0 && ldiff <= 0 && pdiff > 0 && nowdiff > 0;
+
+                        if(threeUppers && threeUppersMACD) result.push(item);
                     });
 
                     if(result.length > 0) {

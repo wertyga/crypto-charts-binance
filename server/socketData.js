@@ -5,7 +5,8 @@ export default class BinanceIO {
     constructor() {
         this._baseUrl = 'wss://stream.binance.com:9443/ws/';
         this.streams = {
-            kline: (pair, interval) => `${pair.toLowerCase()}@kline_${interval}`
+            kline: (pair, interval) => `${pair.toLowerCase()}@kline_${interval}`,
+            depth: (symbol, levels) => `${symbol.toLowerCase()}@depth${levels}`
         };
     };
 
@@ -15,6 +16,10 @@ export default class BinanceIO {
 
     getKlineData(symbol, interval) {
         return this._createSocket(this.streams.kline(symbol, interval))
+    };
+
+    getDepthData(symbol, levels) {
+        return this._createSocket(this.streams.depth(symbol, levels))
     };
 
 };

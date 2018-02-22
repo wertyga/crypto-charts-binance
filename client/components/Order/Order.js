@@ -6,6 +6,8 @@ import { closeOrder } from '../../actions/pairsAPI';
 
 import { exponentialMovingAverage, signalMACD, macdCalculate, simpleMA } from '../../../server/common/ema';
 
+import Depth from '../Depth/Depth';
+
 import './Order.sass';
 
 
@@ -25,7 +27,9 @@ export default class Order extends React.Component {
             buyDate: this.props.createdAt,
             buyed: false,
             profit: '',
-            closePrice: this.props.closePrice
+            closePrice: this.props.closePrice,
+            buyDepth: 0,
+            sellDepth: 0
         };
     };
 
@@ -43,7 +47,9 @@ export default class Order extends React.Component {
                 closePrice: currentPrice,
                 profit
             })
-
+        });
+        this.socket.on(`depth-${this.state.pair}`, msg => {
+            this.setDepth(msg.bids, msg.asks)
         });
         this.socket.on(`error-on-${this.state.pair}`, err => {
             this.setState({ error: err })
@@ -189,6 +195,15 @@ export default class Order extends React.Component {
         chart.draw(data, options);
     };
 
+    setDepth = (buy, sell) => {
+        const buySumm = buy.reduce((a, b) => a + +b[1], 0);
+        const sellSumm = sell.reduce((a, b) => a + +b[1], 0);
+        this.setState({
+            buyDepth: +buySumm,
+            sellDepth: +sellSumm
+        });
+    };
+
     deleteOrder = () => {
         this.props.deleteOrder(this.props._id)
     };
@@ -295,6 +310,13 @@ export default class Order extends React.Component {
                                 `Closed on ${this.state.closePrice}: ${this.state.profit}`:
                                 `Close order ${this.calculateClosePercent()}`}
                         </button>
+
+                        <Depth
+                            buyDepth={this.state.buyDepth}
+                            sellDepth={this.state.sellDepth}
+                        />
+
+
                         {this.state.error && <div className="error">{this.state.error}</div>}
                     </div>
                 <div className="chart" ref={node => this.chart = node}></div>
