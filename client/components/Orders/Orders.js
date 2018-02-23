@@ -1,4 +1,5 @@
 import { connect } from 'react-redux';
+import axios from 'axios';
 
 import { getCandleData, getActiveOrders, deleteOrder } from '../../actions/pairsAPI';
 
@@ -74,12 +75,23 @@ export default class Orders extends React.Component {
             })
     };
 
-
+    deleteUnusedOrders = () => {
+        axios.post('/api/delete-unused', { orders: this.state.orders.filter(item => !item.buyPrice) })
+            .then(res => {
+                this.setState({
+                    orders: res.data.orders.filter(item => item => !!item.buyPrice)
+                });
+            })
+            .catch(err => {
+                this.setState({ error: err.response ? err.response.data.error : err.message })
+            })
+    };
 
     render() {
         return (
             <div className="Orders">
                 {this.state.error && <div className="error">{this.state.error}</div>}
+                <button className="btn btn-danger" onClick={this.deleteUnusedOrders}>Delete unused orders</button>
                 {!this.state.loading ? (this.state.orders.length > 0 ? this.state.orders.map((item, i) =>
                     <Order
                         {...item}

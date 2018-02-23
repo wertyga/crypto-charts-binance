@@ -36,8 +36,8 @@ export default class Depth extends React.Component {
                     <div className="sell">Sell depth: {this.props.sellDepth || 0}</div>
                     <div className="different">
                         {this.state.different > 0 ?
-                            <div className="positive">+ {this.state.different}</div> :
-                            <div className="negative">{this.state.different}</div>
+                            <div className="positive">+ {this.state.different} %</div> :
+                            <div className="negative">{this.state.different} %</div>
                         }
                     </div>
                 </div>

@@ -1,13 +1,12 @@
 const webpack = require('webpack');
 const path = require('path');
-var BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
 const UglyJs = require('webpack-uglify-js-plugin');
 
 
 module.exports = {
 
     entry: {
-        admin: path.join(__dirname, 'Admin/client/index.js'),
+        // admin: path.join(__dirname, 'Admin/client/index.js'),
         bundle: path.join(__dirname, 'client/index.js')
     },
 
@@ -40,10 +39,7 @@ module.exports = {
 
             {
                 test: /\.(js|jsx)$/,
-                include: [
-                    path.join(__dirname, 'client'),
-                    path.join(__dirname, 'Admin/client'),
-                ],
+                exclude: /node_modules/,
                 loaders: 'babel-loader'
             },
 

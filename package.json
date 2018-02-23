@@ -23,6 +23,7 @@
     "mongoose": "^4.13.3",
     "moving-averages": "^4.0.5",
     "socket.io": "^2.0.4",
+    "webpack-uglify-js-plugin": "^1.1.9",
     "winston": "^2.3.1"
   },
   "jest": {

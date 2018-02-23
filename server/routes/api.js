@@ -109,7 +109,7 @@ route.get('/fetch-exist-pair/:pair/:time/:_id', (req, res) => {
                 })
         })
         .catch(err => res.status(500).json({ error: err.message }))
-})
+});
 
 route.get('/get-pairs', (req, res) => {
     const addedApiUrl = '/api/v1/exchangeInfo';
@@ -130,8 +130,8 @@ route.get('/fetch-socket-data/:pair/:interval', (req, res) => {
     const ws = getSocketDataKline(pair, interval);
     const depthWs = getDepthData(pair, depthLevels);
     ws.on('message', msg => {
-        const currentPrice = +JSON.parse(msg).k.c;
-        compareProfit(pair, currentPrice)
+        // const currentPrice = +JSON.parse(msg).k.c;
+        // compareProfit(pair, currentPrice)
         io.emit(`kline-${pair}`, msg)
     });
     depthWs.on('message', msg => {
@@ -324,6 +324,13 @@ route.get('/start-bot/:interval', (req, res) => {
         };
     }, 1000 * 300);
     res.redirect('/show-orders');
+});
+
+route.post('/delete-unused', (req, res) => {
+    const { orders } = req.body;
+    Promise.all(orders.map(item => Trade.findByIdAndRemove(item._id)))
+        .then(() => res.json('success'))
+        .catch(err => res.status(500).json({ error: 'Error on server side while deleting unused orders' }))
 });
 
 

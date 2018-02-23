@@ -29,16 +29,19 @@ export default class Order extends React.Component {
             profit: '',
             closePrice: this.props.closePrice,
             buyDepth: 0,
-            sellDepth: 0
+            sellDepth: 0,
+            depth: false
         };
     };
 
     componentDidMount() {
         this.socket = io(`/`);
-        this.socket.on(`kline-${this.state.pair}`, msg => {
-            this.setState({
-                currentPrice: +JSON.parse(msg).k.c
+        this.socket.on(`kline-${this.state.pair}`,  msg => {
+            const currentPrice = +JSON.parse(msg).k.c;
+             this.setState({
+                currentPrice
             });
+            this.compareProfit(currentPrice);
         });
         this.socket.on(`close-kline-${this.state.pair}`, currentPrice => {
             if(this.state.closePrice) return;
@@ -54,6 +57,7 @@ export default class Order extends React.Component {
         this.socket.on(`error-on-${this.state.pair}`, err => {
             this.setState({ error: err })
         });
+        
         if(this.state.closePrice) {
             let closePercent = ((this.state.closePrice - this.state.buyPrice) / (this.state.buyPrice / 100)).toFixed(2) + '%';
             if(parseFloat(closePercent) > 0) closePercent = '+' + closePercent;
@@ -275,6 +279,23 @@ export default class Order extends React.Component {
         return closePercent;
     };
 
+    getDepth = () => {
+        if(this.state.depth) {
+            this.socket.emit(`get-depth-${this.state.pair}`)
+        } else {
+            this.socket.emit(`close-depth-${this.state.pair}`)
+        };
+        
+    };
+
+    compareProfit = (currentPrice) => {
+        if(calculatePercentProfit(+currentPrice, this.state.buyPrice) > 2.5 && this.state.buyed && !this.state.closePrice) {
+            // calculatePercentProfit(+currentPrice, trade.buyPrice) < -2)) {
+            this.closeOrder();
+
+        }
+    };
+
     render() {
         return (
             <div className="Order">
@@ -285,6 +306,13 @@ export default class Order extends React.Component {
                         <p>Current price: <span>{this.state.currentPrice || 'No current price'}</span></p>
                         <p>Interval: <span>{this.state.interval || 'No interval'}</span></p>
                         <p>Buy time: <span>{this.state.buyDate || 'Not buyed yet'}</span></p>
+
+                        <Depth
+                            buyDepth={this.state.buyDepth}
+                            sellDepth={this.state.sellDepth}
+                        />
+                    
+                        <button className="btn-btn-primary" onClick={this.getDepth}>Get depth</button>
                         <button className='btn btn-primary'
                                 disabled={this.props.loading || this.state.loading} onClick={this.deleteOrder}>Delete order</button>
                         <button className='btn btn-success'
@@ -311,10 +339,7 @@ export default class Order extends React.Component {
                                 `Close order ${this.calculateClosePercent()}`}
                         </button>
 
-                        <Depth
-                            buyDepth={this.state.buyDepth}
-                            sellDepth={this.state.sellDepth}
-                        />
+
 
 
                         {this.state.error && <div className="error">{this.state.error}</div>}
@@ -326,4 +351,9 @@ export default class Order extends React.Component {
             </div>
         );
     };
+};
+
+
+function calculatePercentProfit(currentPrice, buyPrice) {
+    return +((+currentPrice - +buyPrice) / (+buyPrice / 100)).toFixed(2);
 };
