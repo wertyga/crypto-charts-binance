@@ -5,6 +5,7 @@ const tradesSchema = mongoose.Schema({
     pair: String,
     buyPrice: Number,
     interval: String,
+    session: String,
     closePrice: Number,
     createdAt: {
         type: Date

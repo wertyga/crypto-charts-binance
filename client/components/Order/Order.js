@@ -111,7 +111,7 @@ export default class Order extends React.Component {
         let options = {
             colors: ['#ffda00', '#0a1dff'],
             width: '100%',
-            height: 200
+            height: 400
         };
 
         const formatter = new google.visualization.NumberFormat({
@@ -345,7 +345,9 @@ export default class Order extends React.Component {
                         {this.state.error && <div className="error">{this.state.error}</div>}
                     </div>
                 <div className="chart" ref={node => this.chart = node}></div>
-                <div className="chart" ref={node => this.sevenEleven = node}></div>
+                <div className="wrapper-sevenEleven">
+                    <div className="sevenEleven" ref={node => this.sevenEleven = node}></div>
+                </div>
                 <div className="chart" ref={node => this.macdChart = node}></div>
 
             </div>
