@@ -30,7 +30,8 @@ export default class Order extends React.Component {
             closePrice: this.props.closePrice,
             buyDepth: 0,
             sellDepth: 0,
-            depth: false
+            depth: false,
+            localMin: this.props.localMin
         };
     };
 
@@ -306,6 +307,10 @@ export default class Order extends React.Component {
                         <p>Current price: <span>{this.state.currentPrice || 'No current price'}</span></p>
                         <p>Interval: <span>{this.state.interval || 'No interval'}</span></p>
                         <p>Buy time: <span>{this.state.buyDate || 'Not buyed yet'}</span></p>
+                        <div>Local minimum:
+                            <p style={{ margin: '0 0 0 10px' }}>Price: {this.state.localMin.price}</p>
+                            <p style={{ margin: '0 0 0 10px' }}>Position: {this.state.localMin.position}</p>
+                        </div>
 
                         <Depth
                             buyDepth={this.state.buyDepth}

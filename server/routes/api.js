@@ -138,16 +138,17 @@ route.get('/get-bot/:interval', (req, res) => {
     const interval  = req.params.interval;
     analyzeData(interval)
         .then(result => {
-            result.result.forEach(item => {
-                const ws = getSocketDataKline(item.pair, interval);
-                ws.on('message', msg => {
-                    io.emit(`kline-${item.pair}`, msg)
-                });
-            });
+            // result.result.forEach(item => {
+            //     const ws = getSocketDataKline(item.pair, interval);
+            //     ws.on('message', msg => {
+            //         io.emit(`kline-${item.pair}`, msg)
+            //     });
+            // });
 
-            res.json( result )
+            res.json( 'result' )
         })
         .catch(err => {
+            console.log(err)
             res.status(500).json({ error: err.message })
         })
 
@@ -195,7 +196,8 @@ route.get('/get-active-orders', (req, res) => {
                             currentPrice: result[result.length - 1]['Close'],
                             interval: item.interval,
                             pair: item.pair,
-                            closePrice: item.closePrice
+                            closePrice: item.closePrice,
+                            localMin: item.localMin
                         }
                     })
             }))

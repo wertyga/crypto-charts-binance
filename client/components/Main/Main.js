@@ -7,7 +7,7 @@ import axios from 'axios';
 import { getCandleData, fetchPairsData, launcnBot } from '../../actions/pairsAPI';
 
 import dataClient from '../common/data';
-import { exponentialMovingAverage, signalMACD, macdCalculate } from '../../../server/common/ema';
+import { exponentialMovingAverage, signalMACD, macdCalculate, simpleMA } from '../../../server/common/ema';
 
 import Option from '../common/Option/Option';
 
@@ -36,7 +36,7 @@ export default class Main extends React.Component {
             error: this.props.globalError || '',
             pairs: [],
             chosenPair: this.initialChosePair,
-            chosenTimeFrame: '1h',
+            chosenTimeFrame: '30m',
             limit: 50,
             loading: false,
             loadingPairs: false
@@ -103,12 +103,47 @@ export default class Main extends React.Component {
 
             google.charts.load('current', {packages: ['corechart', 'line']});
             google.charts.setOnLoadCallback(this.drawMacdChart);
+            google.charts.setOnLoadCallback(this.drawSeveElevenChart);
         };
 
         if(this.props.botData !== prevProps.botData) {
             // google.charts.load('current', {packages: ['corechart', 'line']});
             // google.charts.setOnLoadCallback(this.drawBotData);
         };
+    };
+
+    drawSeveElevenChart = () => {
+        const dataEma = this.props.dataPair.map(item => {
+            return {
+                time: item['Open time'],
+                price: item['Close']
+            };
+        });
+
+        simpleMA(dataEma, 7);
+        simpleMA(dataEma, 25);
+
+        let dataColumns = [['Time', 'Ma-7', 'Ma-25']];
+        dataEma.filter(item => item['ma-7'] && item['ma-25']).forEach(item => {
+            let elem = [item['time'], item['ma-7'] || 0, item['ma-25'] || 0];
+            dataColumns.push(elem);
+        });
+        const data = google.visualization.arrayToDataTable(dataColumns);
+
+        let options = {
+            colors: ['#ffda00', '#0a1dff'],
+            width: '100%',
+            height: 400
+        };
+
+        const formatter = new google.visualization.NumberFormat({
+            fractionDigits: 8
+        });
+
+        let chart = new google.visualization.LineChart(this.sevenEleven);
+        formatter.format(data, 1);
+        formatter.format(data, 2);
+        chart.draw(data, options);
     };
 
     drawBotData = () => {
@@ -325,7 +360,15 @@ export default class Main extends React.Component {
 
                 <div className="options">
                     <Option
-                        items={this.state.pairs}
+                        items={this.state.pairs.sort((a, b) => {
+                            if(a.name > b.name) {
+                                return 1;
+                            } else if(a.name < b.name) {
+                                return -1;
+                            } else {
+                                return 0
+                            }
+                        })}
                         label='Choose crypto pair'
                         value={this.state.chosenPair.name}
                         loading={this.state.loadingPairs}
@@ -362,7 +405,7 @@ export default class Main extends React.Component {
 
                 <div className="ema" ref={node => this.ema = node} style={{ width: 800 }}></div>
 
-                <div className="ema" ref={node => this.botCharts = node} style={{ width: 800 }}></div>
+                <div className="ema" ref={node => this.sevenEleven = node} style={{ width: 800 }}></div>
             </div>
 
         )

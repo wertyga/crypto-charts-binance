@@ -129,7 +129,8 @@ export function analyzeData(interval='1h') {
                             data: pair.data.map(data => {
                                 return {
                                     time: new Date(data[0] + infelicity),
-                                    price: +data[4]
+                                    price: +data[4],
+                                    minPrice: +data[3]
                                 }
                             })
                         }
@@ -151,6 +152,7 @@ export function analyzeData(interval='1h') {
                 })
                 .then(data => {
                     let result = [];
+
                     data.forEach(item => {
                         let fmacd = item.data[item.data.length - 4].macd;
                         let fsignal = item.data[item.data.length - 4].signal;
@@ -161,6 +163,20 @@ export function analyzeData(interval='1h') {
                         let nowmacd = item.data[item.data.length - 1].macd;
                         let nowsignal = item.data[item.data.length - 1].signal;
 
+                        // Min local price detection
+                        item.min = {
+                            price: 100
+                        };
+                        for(let i = 0; i < item.data.length - 1; i++) {
+                            const data = item.data[i];
+                            if(data.minPrice < item.min.price) {
+                                item.min = {
+                                    position: limit - 1 - i,
+                                    price: data.minPrice
+                                };
+                            };
+                        };
+                        // ******************
                         const sevenAndTwentyFiveEmaDiff =
                             (item.data[item.data.length - 3]['ma-7'] - item.data[item.data.length - 3]['ma-25'])
                             < 0 &&
@@ -205,6 +221,9 @@ export function analyzeData(interval='1h') {
 
                         const coming = (pmacd < lmacd) && (lmacd < nowmacd) && threeDown && ma7UnderMa25;
 
+                        const pSignalMA7 =  item.data[item.data.length - 3]['ma-7'];
+                        const lSignalMA7 =  item.data[item.data.length - 2]['ma-7'];
+
                         const pSignalDiff = item.data[item.data.length - 3]['ma-25'] - item.data[item.data.length - 3]['ma-7'];
                         const lSignalDiff = item.data[item.data.length - 2]['ma-25'] - item.data[item.data.length - 2]['ma-7'];
                         const nowSignalDiff = item.data[item.data.length - 1]['ma-25'] - item.data[item.data.length - 1]['ma-7'];
@@ -217,7 +236,7 @@ export function analyzeData(interval='1h') {
                         const signalCross = fdiff < 0 && ldiff <= 0 && pdiff > 0 && nowdiff > 0;
                         const signalWithMAS = ldiff > 0 && pdiff > 0 && nowdiff > 0;
 
-                        if(pmacd < lmacd && lmacd < nowmacd && fmacd > pmacd && threeDown) result.push(item);
+                        if(signalCross) result.push(item);
                     });
 
                     if(result.length > 0) {
@@ -225,6 +244,7 @@ export function analyzeData(interval='1h') {
                             return new Trade({
                                 pair: item.pair,
                                 session,
+                                localMin: item.min,
                                 // buyPrice: item.data[item.data.length - 1].price,
                                 // createdAt: Date.now() + infelicity,
                                 currentPrice: item.data[item.data.length - 1].price,

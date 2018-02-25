@@ -7,6 +7,10 @@ const tradesSchema = mongoose.Schema({
     interval: String,
     session: String,
     closePrice: Number,
+    localMin: {
+        position: Number,
+        price: Number
+    },
     createdAt: {
         type: Date
     }

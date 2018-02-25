@@ -85,9 +85,9 @@ function fetchPairs(pairs) {
 export function launcnBot(interval) {
     return dispatch => {
         return axios.get(`/api/get-bot/${interval}`)
-            .then(res => {
-                dispatch(getBotData(res.data.result));
-            })
+            // .then(res => {
+            //     // dispatch(getBotData(res.data.result));
+            // })
             .catch(err => {
                 err = err.response ? err.response.data.error : err.message;
                 throw err;
