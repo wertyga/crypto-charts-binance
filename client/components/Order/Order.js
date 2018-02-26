@@ -7,6 +7,8 @@ import { closeOrder } from '../../actions/pairsAPI';
 import { exponentialMovingAverage, signalMACD, macdCalculate, simpleMA } from '../../../server/common/ema';
 
 import Depth from '../Depth/Depth';
+import Input from '../common/Input/Input';
+import Limits from '../common/Limits/Limits';
 
 import './Order.sass';
 
@@ -31,7 +33,14 @@ export default class Order extends React.Component {
             buyDepth: 0,
             sellDepth: 0,
             depth: false,
-            localMin: this.props.localMin
+            localMin: this.props.localMin,
+            input: {
+                fixedValue: '',
+                value: '',
+                hidden: true
+            },
+            buyLimit: this.props.buyLimit || '',
+            takeProfit: this.props.takeProfit || ''
         };
     };
 
@@ -42,16 +51,27 @@ export default class Order extends React.Component {
              this.setState({
                 currentPrice
             });
-            this.compareProfit(currentPrice);
+            // this.compareProfit(currentPrice);
+
+            if((this.state.takeProfit <= currentPrice) && !this.state.closePrice &&
+                this.state.buyPrice && !!this.props.takeProfit) {
+                this.closeOrder();
+            };
+            if((this.state.buyLimit >= currentPrice) && !this.state.closePrice &&
+                !this.state.buyPrice &&
+                !!this.props.buyLimit) {
+                this.buyPair();
+            };
+
         });
-        this.socket.on(`close-kline-${this.state.pair}`, currentPrice => {
-            if(this.state.closePrice) return;
-            const profit = this.calculateClosePercent();
-            this.setState({
-                closePrice: currentPrice,
-                profit
-            })
-        });
+        // this.socket.on(`close-kline-${this.state.pair}`, currentPrice => {
+        //     if(this.state.closePrice) return;
+        //     const profit = this.calculateClosePercent();
+        //     this.setState({
+        //         closePrice: currentPrice,
+        //         profit
+        //     })
+        // });
         this.socket.on(`depth-${this.state.pair}`, msg => {
             this.setDepth(msg.bids, msg.asks)
         });
@@ -78,7 +98,18 @@ export default class Order extends React.Component {
             google.charts.setOnLoadCallback(this.drawMacdChart);
             google.charts.setOnLoadCallback(this.drawSeveElevenChart);
         };
+
+        // if(this.props.takeProfit !== this.state.takeProfit) {
+        //     this.setState({ takeProfit: this.props.takeProfit });
+        // };
+        // if(this.props.buylimit !== this.state.buylimit) {
+        //     this.setState({ buylimit: this.props.buylimit });
+        // };
     };
+
+    // componentWillUnmount() {
+    //     this.socket.emit(`close-socket-${this.state.pair}`)
+    // };
 
     drawAllCharts = () => {
         if(this.state.data.length > 0) {
@@ -297,25 +328,111 @@ export default class Order extends React.Component {
         }
     };
 
+// Input functions
+    onChangeInput = e => {
+        this.setState({
+            input: {
+                ...this.state.input,
+                value: e.target.value
+            }
+        });
+    };
+
+    onClickInput = () => {
+        this.setState({
+            input: {
+                ...this.state.input,
+                hidden: !this.state.input.hidden
+            }
+        });
+    };
+
+    confirmChangingInput = (name) => {
+        this.setState({
+            input: {
+                ...this.state.input,
+                hidden: true,
+                fixedValue: this.state.input.value
+            }
+        });
+    };
+
+    cancelInputingInput = () => {
+        this.setState({
+            input: {
+                ...this.state.input,
+                hidden: true,
+                value: this.state.input.fixedValue
+            }
+        });
+    };
+
+    // *************************
+    // Limits
+
+    limitFunc = opt => {
+        const { order, price } = opt;
+
+        this.setState({
+            [order]: price
+        })
+    };
+
+    //*****************************
+
     render() {
         return (
             <div className="Order">
                     {this.props.loading && <div className="loading">Loading...</div>}
                     <div className="main">
-                        <p>Pair: <span>{this.state.pair}</span></p>
-                        <p>Buy price: <span>{this.state.buyPrice || 'Not buyed yet'}</span></p>
-                        <p>Current price: <span>{this.state.currentPrice || 'No current price'}</span></p>
-                        <p>Interval: <span>{this.state.interval || 'No interval'}</span></p>
-                        <p>Buy time: <span>{this.state.buyDate || 'Not buyed yet'}</span></p>
-                        <div>Local minimum:
-                            <p style={{ margin: '0 0 0 10px' }}>Price: {this.state.localMin.price}</p>
-                            <p style={{ margin: '0 0 0 10px' }}>Position: {this.state.localMin.position}</p>
+                        <div className="uppers">
+                            <div className="left">
+                                <p>Pair: <span>{this.state.pair}</span></p>
+                                <p>Buy price: <span>{this.state.buyPrice || 'Not buyed yet'}</span></p>
+                                <p>Current price: <span>{this.state.currentPrice || 'No current price'}</span></p>
+                                <p>Interval: <span>{this.state.interval || 'No interval'}</span></p>
+                                <p>Buy time: <span>{this.state.buyDate || 'Not buyed yet'}</span></p>
+                                <div>Local minimum:
+                                    <p style={{ margin: '0 0 0 10px' }}>Price: {this.state.localMin.price}</p>
+                                    <p style={{ margin: '0 0 0 10px' }}>Position: {this.state.localMin.position}</p>
+                                </div>
+                            </div>
+
+                            <div className="middle">
+                                <Depth
+                                    buyDepth={this.state.buyDepth}
+                                    sellDepth={this.state.sellDepth}
+                                />
+                            </div>
+
+                            <div className="right">
+                                <Input
+                                    textarea={true}
+                                    value={this.state.input.value}
+                                    name={this.state.pair}
+                                    label={`Comments to ${this.state.pair}`}
+                                    hidden={this.state.input.hidden}
+                                    disabled={this.state.loading}
+                                    onChange={this.onChangeInput}
+                                    onClick={this.onClickInput}
+                                    confirmChanging={this.confirmChangingInput}
+                                    fixedValue={this.state.input.fixedValue}
+                                    cancelInputing={this.cancelInputingInput}
+                                />
+                            </div>
                         </div>
 
-                        <Depth
-                            buyDepth={this.state.buyDepth}
-                            sellDepth={this.state.sellDepth}
+                        <Limits
+                            pair={this.state.pair}
+                            loading={this.state.loading}
+                            id={this.props._id}
+                            takeProfit={this.props.takeProfit}
+                            buyLimit={this.props.buyLimit}
+                            limitFunc={this.limitFunc}
                         />
+
+
+
                     
                         <button className="btn-btn-primary" onClick={this.getDepth}>Get depth</button>
                         <button className='btn btn-primary'

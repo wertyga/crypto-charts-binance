@@ -1,2 +1,0 @@
-{"level":"error","message":"failed to connect to server [localhost:27017] on first connect [MongoError: connection 0 to localhost:27017 timed out]","label":"G:\\REACTJS\\cryptoCurrecy\\server\\common\\mongoose.js","timestamp":"2018-02-07T13:51:31.262Z"}
-{"level":"error","message":"connection 0 to localhost:27017 timed out","label":"G:\\REACTJS\\cryptoCurrecy\\server\\common\\mongoose.js","timestamp":"2018-02-07T14:10:59.464Z"}

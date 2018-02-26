@@ -53,7 +53,6 @@ export function signalMACD(dataObjArray) {
         avg += +item.macd.toFixed(8);
     });
     const firstSignal = +(avg / timePeriod).toFixed(8);
-    console.log(macdArr[timePeriod - 1])
     macdArr[timePeriod - 1].signal = +firstSignal.toFixed(8);
 
     for(let i = timePeriod; i < macdArr.length; i++) {

@@ -45,8 +45,12 @@ export default class Main extends React.Component {
 
     componentDidMount() {
         if(this.state.pairs.length < 1) {
-            if(this.props.pairs.length > 1) {
-                this.setState({ pairs: this.props.pairs })
+            if(this.props.pairs.length > 0) {
+                this.setState({
+                    pairs: this.props.pairs
+                        .filter(item => isNaN(+item))
+                        .map(item => { return { name: item, title: item } })
+                })
             } else {
                 this.setState({ loadingPairs: true });
                 this.props.fetchPairsData()

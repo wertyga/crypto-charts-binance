@@ -14,6 +14,10 @@ let route = express.Router();
 const baseUrl = config.baseEndPoint;
 let start = 0;
 
+// io.on('connection', socket => {
+//     console.log('connect socket')
+// });
+
 route.get('/fetch-pair/:pair/:time/:limit/', (req, res) => {
     const { pair, time, limit } = req.params;
 
@@ -128,6 +132,8 @@ route.get('/fetch-socket-data/:pair/:interval', (req, res) => {
         // compareProfit(pair, currentPrice)
         io.emit(`kline-${pair}`, msg)
     });
+    
+    ws.on('close', () => { console.log('Close socket') })
     // depthWs.on('message', msg => {
     //     io.emit(`depth-${pair}`, JSON.parse(msg));
     // });
@@ -197,7 +203,9 @@ route.get('/get-active-orders', (req, res) => {
                             interval: item.interval,
                             pair: item.pair,
                             closePrice: item.closePrice,
-                            localMin: item.localMin
+                            localMin: item.localMin,
+                            takeProfit: item.takeProfit,
+                            buyLimit: item.buyLimit
                         }
                     })
             }))
@@ -328,6 +336,16 @@ route.post('/delete-unused', (req, res) => {
     Promise.all(orders.map(item => Trade.findByIdAndRemove(item._id)))
         .then(() => res.json('success'))
         .catch(err => res.status(500).json({ error: 'Error on server side while deleting unused orders' }))
+});
+
+route.post('/limits', (req, res) => {
+    const { order, price, id } = req.body;
+
+    Trade.findByIdAndUpdate(id, { $set: { [order]: +price } }, { new: true })
+        .then(order => {
+            res.json({ order })
+        })
+        .catch(err => res.status(500).json({ error: err.message }))
 });
 
 

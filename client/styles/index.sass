@@ -44,9 +44,12 @@ button:focus
   cursor: pointer
   color: white
   font-weight: bold
+  transition: background-color .1s
   &:disabled
     color: #ccd0d4
     cursor: no-drop
+  &:active
+    background-color: #eee
 .btn-primary
   background-color: #0065ff
   &:disabled

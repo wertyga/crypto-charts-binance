@@ -185,22 +185,6 @@ export function analyzeData(interval='1h') {
                             (item.data[item.data.length - 1]['ma-7'] - item.data[item.data.length - 1]['ma-25'])
                             > 0;
 
-
-
-                        // if(lsignal < 0 && lmacd < 0) {
-                        //     const pdiff = pmacd - psignal;
-                        //     const ldiff = lmacd - lsignal;
-                        //     if(pdiff <= 0 && ldiff >= 0) result.push(item);
-                        // };
-
-                        // if(true) {
-                        //         const pdiff = pmacd - psignal;
-                        //         const ldiff = lmacd - lsignal;
-                        //         const nowdiff = nowmacd - nowsignal;
-                        //         // if(pdiff <= 0 && ldiff >= 0 && nowdiff > 0) result.push(item);
-                        //         if(pdiff <= 0 && ldiff >= 0 && nowdiff > 0) result.push(item);
-                        // };
-
                         const threeUppers =
                             (item.data[item.data.length - 3]['ma-7'] < item.data[item.data.length - 2]['ma-7'])
                             &&
@@ -219,8 +203,6 @@ export function analyzeData(interval='1h') {
                             (item.data[item.data.length - 2]['ma-7'] < item.data[item.data.length - 2]['ma-25']) &&
                             (item.data[item.data.length - 1]['ma-7'] < item.data[item.data.length - 1]['ma-25']);
 
-                        const coming = (pmacd < lmacd) && (lmacd < nowmacd) && threeDown && ma7UnderMa25;
-
                         const pSignalMA7 =  item.data[item.data.length - 3]['ma-7'];
                         const lSignalMA7 =  item.data[item.data.length - 2]['ma-7'];
 
@@ -236,11 +218,14 @@ export function analyzeData(interval='1h') {
                         const signalCross = fdiff < 0 && ldiff <= 0 && pdiff > 0 && nowdiff > 0;
                         const signalWithMAS = ldiff > 0 && pdiff > 0 && nowdiff > 0;
 
+                        const coming = (fmacd < pmacd && pmacd <= lmacd) && (pmacd < lmacd) && (pSignalMA7 < lSignalMA7);
+
                         if(signalCross) result.push(item);
                     });
 
                     if(result.length > 0) {
                         return Promise.all(result.map(item => {
+                            console.log(item.min)
                             return new Trade({
                                 pair: item.pair,
                                 session,

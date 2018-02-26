@@ -6,6 +6,22 @@ import { getCandleData, getActiveOrders, deleteOrder } from '../../actions/pairs
 import './Orders.sass';
 import Order from "../Order/Order";
 
+
+const arrow = {
+    width: 20,
+    height: 20,
+    boxSizing: 'border-box',
+    transform: 'rotate(45deg)'
+};
+const leftArrow = {
+    ...arrow,
+    borderLeft: '1px solid black',
+    borderBottom: '1px solid black',
+    borderRight: '1px solid transparent',
+    borderTop: '1px solid transparent'
+};
+
+
 const mapState = state => {
     return {
         orders: state.trades
@@ -17,9 +33,13 @@ export default class Orders extends React.Component {
     constructor(props) {
         super(props);
 
+        this.showOrders = 3;
+
         this.state = {
             orders: this.props.orders || [],
             loading: false,
+            page: 0,
+            totalPages: 1,
             error: ''
         };
     };
@@ -27,11 +47,8 @@ export default class Orders extends React.Component {
     componentDidMount() {
         this.setState({ loading: true });
         this.props.getActiveOrders()
-            .then(res => {
-                this.setState({
-                    orders: res.data.orders,
-                    loading: false
-                });
+            .then(() => {
+                this.setState({ loading: false });
             })
             .catch(err => {
                 this.setState({
@@ -42,10 +59,20 @@ export default class Orders extends React.Component {
     };
 
     componentDidUpdate(prevProps, prevState) {
-        if(this.state.orders !== prevState.orders) {
-            console.log('sort')
-            this.setState({
-                orders: this.state.orders.sort((a, b) => {
+        if(this.props.orders !== prevProps.orders) {
+            this.setTotalPages();
+            this.setPagination();
+
+        };
+        if(this.state.page !== prevState.page) {
+            this.setPagination();
+        };
+    };
+
+    setPagination = () => {
+        this.setState({
+            orders: this.props.orders.slice(this.state.page * this.showOrders, this.state.page * this.showOrders + this.showOrders)
+                .sort((a, b) => {
                     if(a.pair > b.pair) {
                         return 1;
                     } else if(a.pair < b.pair) {
@@ -54,8 +81,13 @@ export default class Orders extends React.Component {
                         return 0;
                     }
                 })
-            });
-        };
+        });
+    };
+
+    setTotalPages = () => {
+        this.setState({
+            totalPages: Math.ceil(this.props.orders.length / this.showOrders)
+        });
     };
 
     deleteOrder = (_id) => {
@@ -87,6 +119,17 @@ export default class Orders extends React.Component {
             })
     };
 
+    pagination = e => {
+        const route = e.currentTarget.getAttribute('data-route') === 'left';
+        let page = route ? (this.state.page - 1) : (this.state.page + 1);
+
+        if(page < 0) page = 0;
+        if(page > this.state.totalPages - 1) page = this.state.totalPages - 1;
+        this.setState({
+            page
+        });
+    };
+
     render() {
         return (
             <div className="Orders">
@@ -103,6 +146,17 @@ export default class Orders extends React.Component {
                     <div>No orders</div>) :
                     <div className="loading">Loading...</div>
                 }
+                <div className="pages-wrapper">
+                    <button className="btn btn-primary" onClick={this.pagination} data-route='left'>
+                        <span className="arrow leftArrow"></span>
+                        <span className="arrow leftArrow"></span>
+                    </button>
+                    <strong className="pages">{`${this.state.page + 1} / ${this.state.totalPages}`}</strong>
+                    <button className="btn btn-primary" onClick={this.pagination} data-route='right'>
+                        <span className="arrow rightArrow"></span>
+                        <span className="arrow rightArrow"></span>
+                    </button>
+                </div>
             </div>
         );
     };

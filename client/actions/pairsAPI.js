@@ -32,6 +32,10 @@ export function deleteOrder(_id) {
 export function getActiveOrders() {
     return dispatch => {
         return axios.get('/api/get-active-orders')
+            .then(res => dispatch(getTrades(res.data.orders)))
+            .catch(err => {
+                throw err;
+            })
     }
 };
 
