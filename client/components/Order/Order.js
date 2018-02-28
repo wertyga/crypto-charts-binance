@@ -18,10 +18,12 @@ export default class Order extends React.Component {
     constructor(props) {
         super(props);
 
-        this.state = {
+        this.initialState = {
+            _id: this.props._id,
             pair: this.props.pair || '',
             buyPrice: this.props.buyPrice || '',
             currentPrice: this.props.currentPrice || '',
+            prevPrice: 0,
             interval: this.props.interval || '',
             loading: false,
             data: [],
@@ -39,28 +41,36 @@ export default class Order extends React.Component {
                 value: this.props.comment || '',
                 hidden: true
             },
-            buyLimit: this.props.buyLimit || '',
+            buyLimit1: this.props.buyLimit1 || '',
+            buyLimit2: this.props.buyLimit2 || '',
+            buyLimit3: this.props.buyLimit3 || '',
             takeProfit: this.props.takeProfit || ''
         };
+
+        this.state = this.initialState;
     };
 
     componentDidMount() {
         this.socket = io(`/`);
-        this.socket.on(`kline-${this.state.pair}`,  msg => {
-            const currentPrice = +JSON.parse(msg).k.c;
-             this.setState({
-                currentPrice
-            });
-            // this.compareProfit(currentPrice);
+        this.socket.on(`kline-${this.state.pair}`,  async msg => {
+            const currentPrice = await +JSON.parse(msg).k.c;
+            const limits = await [this.state.buyLimit1, this.state.buyLimit2, this.state.buyLimit3];
 
-            if((this.state.takeProfit <= currentPrice) && !this.state.closePrice &&
-                this.state.buyPrice && !!this.props.takeProfit) {
-                this.closeOrder();
+            if(!!this.state.prevPrice && !this.state.buyPrice) {
+                if(!this.state.closePrice) {
+                    await limits.forEach(item => {
+                        let max = Math.max(this.state.prevPrice, currentPrice);
+                        let min = Math.min(this.state.prevPrice, currentPrice);
+                        if(item && (max - min >= max - item) && (max - item > 0)) {
+                            this.buyPair();
+                        };
+                    });
+                };
             };
-            if((this.state.buyLimit >= currentPrice) && !this.state.closePrice &&
-                !this.state.buyPrice &&
-                !!this.props.buyLimit) {
-                this.buyPair();
+            await this.setState({ currentPrice, prevPrice: currentPrice });
+
+            if(!!this.state.takeProfit && !!this.state.buyPrice && this.state.takeProfit >= currentPrice) {
+                this.closeOrder();
             };
 
         });
@@ -242,12 +252,7 @@ export default class Order extends React.Component {
 
     deleteOrder = () => {
         this.setState({ loading: true });
-        this.props.deleteOrder(this.props._id)
-            .then(() => {
-                this.setState({
-                    loading: false
-                })
-            })
+        this.props.deleteOrder(this.state._id)
             .catch(err => {
                 this.setState({
                     error: err.response ? err.response.data.error : err.message,
@@ -258,7 +263,7 @@ export default class Order extends React.Component {
 
     showOrder = () => {
         this.setState({ loading: true });
-        axios.get(`/api/fetch-exist-pair/${this.props.pair}/${this.props.interval}/${this.props._id}`)
+        axios.get(`/api/fetch-exist-pair/${this.props.pair}/${this.props.interval}/${this.sttae._id}`)
             .then(res => {
                 this.setState({
                     currentPrice: res.data.data[res.data.data.length - 1]['Close'],
@@ -276,7 +281,7 @@ export default class Order extends React.Component {
 
     buyPair = () => {
         this.setState({ loading: true });
-        axios.get(`/api/buy-pair/${this.state.pair}/${this.state.interval}/${this.props._id}/${this.state.currentPrice}`)
+        axios.get(`/api/buy-pair/${this.state.pair}/${this.state.interval}/${this.state._id}/${this.state.currentPrice}`)
             .then(res => {
                 this.setState({
                     buyPrice: res.data.buyPrice,
@@ -295,7 +300,7 @@ export default class Order extends React.Component {
     closeOrder = () => {
         this.setState({ loading: true });
         this.props.closeOrder({
-            id: this.props._id,
+            id: this.state._id,
             interval: this.state.interval,
             pair: this.state.pair,
             buyDate: this.state.buyDate
@@ -365,7 +370,7 @@ export default class Order extends React.Component {
 
     confirmChangingInput = (name) => {
         this.setState({ loading: true });
-        axios.post('/api/comment', { id: this.props._id, comment: this.state.input.value })
+        axios.post('/api/comment', { id: this.state._id, comment: this.state.input.value })
             .then(() => {
                 this.setState({
                     input: {
@@ -408,6 +413,38 @@ export default class Order extends React.Component {
 
     //*****************************
 
+    reNewOrder = () => {
+        if(!this.state.closePrice) return;
+        this.setState({ loading: true });
+        axios.get(`/api/renew-order/${this.state._id}/${this.state.pair}/${this.state.interval}`)
+            .then(res => {
+                const data = res.data._doc;
+                this.setState({
+                    ...this.initialState,
+                    _id: data._id,
+                    buyDate: '',
+                    buyed: false,
+                    buyPrice: '',
+                    closePrice: '',
+                    buyLimit1: '',
+                    buyLimit2: '',
+                    buyLimit3: '',
+                    takeProfit: '',
+                    input: {
+                        fixedValue: '',
+                        value: '',
+                        hidden: true
+                    },
+                });
+            })
+            .catch(err => {
+                this.setState({
+                    loading: false,
+                    error: err.response ? err.response.data.error : err.message
+                })
+            });
+    };
+
     render() {
         return (
             <div className="Order">
@@ -435,6 +472,12 @@ export default class Order extends React.Component {
 
                             <div className="right">
                                 <Input
+                                    style={{
+                                        flexDirection: 'column',
+                                        margin: 0,
+                                        width: '100%',
+                                        height: '100%'
+                                     }}
                                     textarea={true}
                                     value={this.state.input.value}
                                     name={this.state.pair}
@@ -453,9 +496,11 @@ export default class Order extends React.Component {
                         <Limits
                             pair={this.state.pair}
                             loading={this.state.loading}
-                            id={this.props._id}
-                            takeProfit={this.props.takeProfit}
-                            buyLimit={this.props.buyLimit}
+                            id={this.state._id}
+                            takeProfit={this.state.takeProfit}
+                            buyLimit1={this.state.buyLimit1}
+                            buyLimit2={this.state.buyLimit2}
+                            buyLimit3={this.state.buyLimit3}
                             limitFunc={this.limitFunc}
                         />
 
@@ -487,6 +532,12 @@ export default class Order extends React.Component {
                             {!!this.state.closePrice ?
                                 `Closed on ${this.state.closePrice}: ${this.state.profit}`:
                                 `Close order ${this.calculateClosePercent()}`}
+                        </button>
+                        <button className="btn btn-primary"
+                                disabled={this.state.loading || !this.state.closePrice || !this.state.buyPrice}
+                                onClick={this.reNewOrder}
+                        >
+                            Renew order
                         </button>
 
 

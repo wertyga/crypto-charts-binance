@@ -1,13 +1,14 @@
 import express from 'express';
 import axios from 'axios';
 import config from '../common/config';
+import shortId from 'short-id';
 
 import { ee, io } from '../index';
 
 import Trade from '../models/trade';
 import Result from '../models/result';
 
-import { analyzeData, newResult, startBot, getSocketDataKline, getDepthData } from '../getData';
+import { analyzeData, newResult, startBot, getSocketDataKline, getDepthData, getKline, calculateMinPrice } from '../getData';
 import { infelicity } from '../getData';
 
 let route = express.Router();
@@ -216,7 +217,9 @@ route.get('/get-active-orders', (req, res) => {
                             closePrice: item.closePrice,
                             localMin: item.localMin,
                             takeProfit: item.takeProfit,
-                            buyLimit: item.buyLimit,
+                            buyLimit1: item.buyLimit1,
+                            buyLimit2: item.buyLimit2,
+                            buyLimit3: item.buyLimit3,
                             comment: item.comment
                         }
                     })
@@ -224,6 +227,22 @@ route.get('/get-active-orders', (req, res) => {
                 .then(orders => {
                     res.json({ orders })
                 })
+        })
+        .catch(err => res.status(500).json({ error: err.message }))
+});
+
+route.get('/renew-order/:id/:symbol/:interval', (req, res) => {
+    const { id, interval, symbol } = req.params;
+    const limit = 50;
+    
+    Trade.findByIdAndRemove(id)
+        .then(() => getKline({ symbol, interval, limit}))
+        .then(data => {
+            new Trade({
+                pair: symbol,
+                interval,
+                session: shortId.generate()
+            }).save().then(order => res.json({ ...order }))
         })
         .catch(err => res.status(500).json({ error: err.message }))
 });

@@ -1,7 +1,9 @@
 .Input
-  width: 30%
+  width: 100%
   position: relative
   margin-top: 20px
+  display: flex
+  flex-wrap: wrap
   input
     border: none
     margin-top: 20px
@@ -13,7 +15,14 @@
       border-bottom: none
     &:focus
       outline: none
+  .label
+    margin-right: 20px
   input, textarea
+    box-sizing: border-box
+  textarea
+    width: 100%
+    height: 100%
+    resize: none
     box-sizing: border-box
   #floatText
     position: absolute
@@ -36,8 +45,10 @@
     position: absolute
     bottom: 0
     display: block
-  error
+  .error
     text-align: left
     display: block
     color: red
     padding-top: 10px
+  .field
+    height: 100%

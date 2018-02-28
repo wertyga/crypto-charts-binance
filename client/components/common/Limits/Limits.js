@@ -12,9 +12,19 @@ export default class limits extends React.Component {
                 fixedValue: this.props.takeProfit || '',
                 hidden: true
             },
-            buyLimit: {
-                value: this.props.buyLimit || '',
-                fixedValue: this.props.buyLimit || '',
+            buyLimit1: {
+                value: this.props.buyLimit1 || '',
+                fixedValue: this.props.buyLimit1 || '',
+                hidden: true
+            },
+            buyLimit2: {
+                value: this.props.buyLimit2 || '',
+                fixedValue: this.props.buyLimit2 || '',
+                hidden: true
+            },
+            buyLimit3: {
+                value: this.props.buyLimit3 || '',
+                fixedValue: this.props.buyLimit3 || '',
                 hidden: true
             },
             loading: false,
@@ -26,6 +36,42 @@ export default class limits extends React.Component {
         if(this.state.loading !== this.props.loading) {
             this.setState({
                 loading: this.props.loading
+            });
+        };
+        if(this.props.buyLimit1 !== prevProps.buyLimit1) {
+            this.setState({
+                buyLimit1: {
+                    value: this.props.buyLimit1 || '',
+                    fixedValue: this.props.buyLimit1 || '',
+                    hidden: true
+                }
+            });
+        };
+        if(this.props.buyLimit2 !== prevProps.buyLimit2) {
+            this.setState({
+                buyLimit2: {
+                    value: this.props.buyLimit2 || '',
+                    fixedValue: this.props.buyLimit2 || '',
+                    hidden: true
+                }
+            });
+        };
+        if(this.props.buyLimit3 !== prevProps.buyLimit3) {
+            this.setState({
+                buyLimit3: {
+                    value: this.props.buyLimit3 || '',
+                    fixedValue: this.props.buyLimit3 || '',
+                    hidden: true
+                }
+            });
+        };
+        if(this.props.takeProfit !== prevProps.takeProfit) {
+            this.setState({
+                takeProfit: {
+                    value: this.props.takeProfit || '',
+                    fixedValue: this.props.takeProfit || '',
+                    hidden: true
+                }
             });
         };
     };
@@ -99,15 +145,39 @@ export default class limits extends React.Component {
                     cancelInputing={this.cancelInputingInput}
                 />
                 <Input
-                    name='buyLimit'
-                    value={this.state.buyLimit.value}
-                    label={`buyLimit to ${this.props.pair}`}
-                    hidden={this.state.buyLimit.hidden}
+                    name='buyLimit1'
+                    value={this.state.buyLimit1.value}
+                    label={`buyLimit 1 to ${this.props.pair}`}
+                    hidden={this.state.buyLimit1.hidden}
                     disabled={this.state.loading}
                     onChange={this.onChangeInput}
                     onClick={this.onClickInput}
                     confirmChanging={this.confirmChangingInput}
-                    fixedValue={this.state.buyLimit.fixedValue}
+                    fixedValue={this.state.buyLimit1.fixedValue}
+                    cancelInputing={this.cancelInputingInput}
+                />
+                <Input
+                    name='buyLimit2'
+                    value={this.state.buyLimit2.value}
+                    label={`buyLimit 2 to ${this.props.pair}`}
+                    hidden={this.state.buyLimit2.hidden}
+                    disabled={this.state.loading}
+                    onChange={this.onChangeInput}
+                    onClick={this.onClickInput}
+                    confirmChanging={this.confirmChangingInput}
+                    fixedValue={this.state.buyLimit2.fixedValue}
+                    cancelInputing={this.cancelInputingInput}
+                />
+                <Input
+                    name='buyLimit3'
+                    value={this.state.buyLimit3.value}
+                    label={`buyLimit 3 to ${this.props.pair}`}
+                    hidden={this.state.buyLimit3.hidden}
+                    disabled={this.state.loading}
+                    onChange={this.onChangeInput}
+                    onClick={this.onClickInput}
+                    confirmChanging={this.confirmChangingInput}
+                    fixedValue={this.state.buyLimit3.fixedValue}
                     cancelInputing={this.cancelInputingInput}
                 />
             </div>

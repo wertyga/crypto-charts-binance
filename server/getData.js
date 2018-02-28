@@ -108,11 +108,7 @@ export function analyzeData(interval='1h') {
                             interval,
                             limit
                         };
-                        return axios({
-                            method: 'get',
-                            params,
-                            url: baseUrl + '/api/v1/klines'
-                        })
+                        return getKline(params)
                             .then(resp => {
                                 return {
                                     pair,
@@ -164,18 +160,7 @@ export function analyzeData(interval='1h') {
                         let nowsignal = item.data[item.data.length - 1].signal;
 
                         // Min local price detection
-                        item.min = {
-                            price: 100
-                        };
-                        for(let i = 0; i < item.data.length - 1; i++) {
-                            const data = item.data[i];
-                            if(data.minPrice < item.min.price) {
-                                item.min = {
-                                    position: limit - 1 - i,
-                                    price: data.minPrice
-                                };
-                            };
-                        };
+                        calculateMinPrice(item);
                         // ******************
                         const sevenAndTwentyFiveEmaDiff =
                             (item.data[item.data.length - 3]['ma-7'] - item.data[item.data.length - 3]['ma-25'])
@@ -313,4 +298,27 @@ export function compareProfit(pair, currentPrice, ws) {
                     })
             };
         })
+};
+
+export function getKline(params) {
+    return axios({
+        method: 'get',
+        params,
+        url: baseUrl + '/api/v1/klines'
+    })
+};
+
+export function calculateMinPrice(item) {
+    item.min = {
+        price: 100
+    };
+    for(let i = 0; i < item.data.length - 1; i++) {
+        const data = item.data[i];
+        if(data.minPrice < item.min.price) {
+            item.min = {
+                position: limit - 1 - i,
+                price: data.minPrice
+            };
+        };
+    };  
 };

@@ -1,3 +1,5 @@
+import './Input.sass';
+
 export default class Input extends React.Component {
 
     componentDidUpdate(prevProps) {
@@ -64,8 +66,12 @@ export default class Input extends React.Component {
         );
 
         return (
-            <div className="Input" onClick={() => this.props.onClick(this.props.name)} name={this.props.name}>
-                <div><strong>{this.props.label}</strong></div>
+            <div className="Input"
+                 onClick={() => this.props.onClick(this.props.name)}
+                 name={this.props.name}
+                 style={this.props.style}
+            >
+                <div className="label"><strong>{this.props.label}</strong></div>
                 <div className="field"
                      style={{
                          display: !this.props.hidden ? 'none' : 'block',
