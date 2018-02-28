@@ -218,14 +218,13 @@ export function analyzeData(interval='1h') {
                         const signalCross = fdiff < 0 && ldiff <= 0 && pdiff > 0 && nowdiff > 0;
                         const signalWithMAS = ldiff > 0 && pdiff > 0 && nowdiff > 0;
 
-                        const coming = (fmacd < pmacd && pmacd <= lmacd) && (pmacd < lmacd) && (pSignalMA7 < lSignalMA7);
+                        const coming = (fmacd < pmacd && pmacd <= lmacd) && (pSignalMA7 < lSignalMA7);
 
-                        if(signalCross) result.push(item);
+                        if(coming) result.push(item);
                     });
 
                     if(result.length > 0) {
                         return Promise.all(result.map(item => {
-                            console.log(item.min)
                             return new Trade({
                                 pair: item.pair,
                                 session,

@@ -11,7 +11,7 @@ const tradesSchema = mongoose.Schema({
         position: Number,
         price: Number
     },
-    comments: String,
+    comment: String,
     takeProfit: Number,
     buyLimit: Number,
     createdAt: {

@@ -132,12 +132,23 @@ route.get('/fetch-socket-data/:pair/:interval', (req, res) => {
         // compareProfit(pair, currentPrice)
         io.emit(`kline-${pair}`, msg)
     });
+    ws.on('error', err => {
+        console.log(err)
+    });
     
     ws.on('close', () => { console.log('Close socket') })
     // depthWs.on('message', msg => {
     //     io.emit(`depth-${pair}`, JSON.parse(msg));
     // });
     res.end();
+});
+
+route.post('/comment', (req, res) => {
+    const { comment, id } = req.body;
+
+    Trade.findByIdAndUpdate(id, { $set: { comment } })
+        .then(() => res.json('comment edited'))
+        .catch(err => res.status(500).json({ error: err.message }))
 });
 
 route.get('/get-bot/:interval', (req, res) => {
@@ -205,7 +216,8 @@ route.get('/get-active-orders', (req, res) => {
                             closePrice: item.closePrice,
                             localMin: item.localMin,
                             takeProfit: item.takeProfit,
-                            buyLimit: item.buyLimit
+                            buyLimit: item.buyLimit,
+                            comment: item.comment
                         }
                     })
             }))

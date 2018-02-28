@@ -16,15 +16,13 @@ export default class Input extends React.Component {
             };
             this.props.confirmChanging(this.props.name);
             document.body.removeEventListener('click', this.confirmChanging);
-            return;
         } else {
             if(e.keyCode === 13) {
                 this.props.confirmChanging(this.props.name);
-
             } else if(e.keyCode === 27){
                 this.props.cancelInputing(this.props.name);
-
             };
+            document.body.removeEventListener('click', this.confirmChanging);
         }
 
     };

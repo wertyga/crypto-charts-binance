@@ -35,8 +35,8 @@ export default class Order extends React.Component {
             depth: false,
             localMin: this.props.localMin,
             input: {
-                fixedValue: '',
-                value: '',
+                fixedValue: this.props.comment || '',
+                value: this.props.comment || '',
                 hidden: true
             },
             buyLimit: this.props.buyLimit || '',
@@ -241,7 +241,19 @@ export default class Order extends React.Component {
     };
 
     deleteOrder = () => {
+        this.setState({ loading: true });
         this.props.deleteOrder(this.props._id)
+            .then(() => {
+                this.setState({
+                    loading: false
+                })
+            })
+            .catch(err => {
+                this.setState({
+                    error: err.response ? err.response.data.error : err.message,
+                    loading: false
+                })
+            });
     };
 
     showOrder = () => {
@@ -338,23 +350,39 @@ export default class Order extends React.Component {
         });
     };
 
-    onClickInput = () => {
-        this.setState({
-            input: {
-                ...this.state.input,
-                hidden: !this.state.input.hidden
-            }
-        });
+    onClickInput = (e) => {
+        if(!this.state.input.hidden) {
+            return;
+        } else {
+            this.setState({
+                input: {
+                    ...this.state.input,
+                    hidden: false
+                }
+            })
+        };
     };
 
     confirmChangingInput = (name) => {
-        this.setState({
-            input: {
-                ...this.state.input,
-                hidden: true,
-                fixedValue: this.state.input.value
-            }
-        });
+        this.setState({ loading: true });
+        axios.post('/api/comment', { id: this.props._id, comment: this.state.input.value })
+            .then(() => {
+                this.setState({
+                    input: {
+                        ...this.state.input,
+                        hidden: true,
+                        fixedValue: this.state.input.value
+                    },
+                    loading: false
+                });
+            })
+            .catch(err => {
+                this.setState({
+                    error: err.response ? err.response.data.error : err.message,
+                    loading: false
+                })
+            })
+
     };
 
     cancelInputingInput = () => {

@@ -33,13 +33,14 @@ export default class Orders extends React.Component {
     constructor(props) {
         super(props);
 
-        this.showOrders = 3;
+        this.showOrders = 50;
 
         this.state = {
             orders: this.props.orders || [],
             loading: false,
             page: 0,
             totalPages: 1,
+            sortInput: '',
             error: ''
         };
     };
@@ -60,18 +61,32 @@ export default class Orders extends React.Component {
 
     componentDidUpdate(prevProps, prevState) {
         if(this.props.orders !== prevProps.orders) {
-            this.setTotalPages();
             this.setPagination();
 
         };
         if(this.state.page !== prevState.page) {
             this.setPagination();
         };
+        if(this.state.sortInput !== prevState.sortInput) {
+            this.setPagination();
+        };
+    };
+
+    changeSortInput = e => {
+        const value = e.target.value;
+        this.setState({
+            sortInput: value,
+            page: 0
+        });
     };
 
     setPagination = () => {
+        const orders = this.props.orders
+            .filter(item => item.pair.toLocaleLowerCase().indexOf(this.state.sortInput.toLowerCase()) !== -1);
+        this.setTotalPages(orders);
         this.setState({
-            orders: this.props.orders.slice(this.state.page * this.showOrders, this.state.page * this.showOrders + this.showOrders)
+            orders: orders
+                .slice(this.state.page * this.showOrders, this.state.page * this.showOrders + this.showOrders)
                 .sort((a, b) => {
                     if(a.pair > b.pair) {
                         return 1;
@@ -84,26 +99,20 @@ export default class Orders extends React.Component {
         });
     };
 
-    setTotalPages = () => {
+    setTotalPages = (orders) => {
         this.setState({
-            totalPages: Math.ceil(this.props.orders.length / this.showOrders)
+            totalPages: Math.ceil(orders.length / this.showOrders)
         });
     };
 
     deleteOrder = (_id) => {
-        this.setState({ loading: true });
         this.props.deleteOrder(_id)
-            .then(res => {
+            .then(res =>
                 this.setState({
-                    orders: this.state.orders.filter(item => item._id !== _id),
-                    loading: false
-                })
-            })
+                    orders: this.state.orders.filter(item => item._id !== _id)
+                }))
             .catch(err => {
-                this.setState({
-                    error: err.response ? err.response.data.error : err.message,
-                    loading: false
-                })
+                throw err;
             })
     };
 
@@ -134,6 +143,26 @@ export default class Orders extends React.Component {
         return (
             <div className="Orders">
                 {this.state.error && <div className="error">{this.state.error}</div>}
+                
+                <input
+                    className="input"
+                    type="text"
+                    onChange={this.changeSortInput}
+                    value={this.state.sortInput}
+                />
+
+                <div className="pages-wrapper">
+                    <button className="btn btn-primary" onClick={this.pagination} data-route='left'>
+                        <span className="arrow leftArrow"></span>
+                        <span className="arrow leftArrow"></span>
+                    </button>
+                    <strong className="pages">{`${this.state.page + 1} / ${this.state.totalPages}`}</strong>
+                    <button className="btn btn-primary" onClick={this.pagination} data-route='right'>
+                        <span className="arrow rightArrow"></span>
+                        <span className="arrow rightArrow"></span>
+                    </button>
+                </div>
+
                 <button className="btn btn-danger" onClick={this.deleteUnusedOrders}>Delete unused orders</button>
                 {!this.state.loading ? (this.state.orders.length > 0 ? this.state.orders.map((item, i) =>
                     <Order
